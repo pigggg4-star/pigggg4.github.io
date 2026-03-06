@@ -1,0 +1,26 @@
+{
+  "name": "114年度水利設施防洪工程平均單價查詢表",
+  "short_name": "單價查詢",
+  "description": "114年度水利設施防洪工程平均單價查詢，含13類67筆工項",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e8f4fd",
+  "theme_color": "#1a5276",
+  "lang": "zh-TW",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "productivity"]
+}
