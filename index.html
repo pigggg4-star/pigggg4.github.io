@@ -2,582 +2,706 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>浮水印相機</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>九九乘法大挑戰</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;background:#000;font-family:-apple-system,BlinkMacSystemFont,sans-serif;-webkit-tap-highlight-color:transparent}
-#app{max-width:480px;margin:0 auto;background:#111;min-height:100vh;display:flex;flex-direction:column}
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
 
-#vf{position:relative;width:100%;background:#000;overflow:hidden;flex-shrink:0;aspect-ratio:4/3}
-#videoEl{width:100%;height:100%;object-fit:cover;display:block;transform-origin:center}
-#canvas{display:none}
+:root {
+  --bg: #fff8f0;
+  --card: #ffffff;
+  --primary: #ff6b35;
+  --primary-light: #fff0eb;
+  --correct: #00c896;
+  --correct-bg: #e6fff8;
+  --wrong: #f44336;
+  --wrong-bg: #fff0ef;
+  --blue: #2196f3;
+  --text: #1a1a2e;
+  --muted: #9e9e9e;
+  --shadow: 0 4px 16px rgba(0,0,0,.09);
+  --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans TC', 'Nunito', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  color: var(--text);
+}
 
-/* 頂部工具列 */
-#topbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:linear-gradient(rgba(0,0,0,0.55),transparent);z-index:20;gap:6px}
-.tb-btn{background:rgba(0,0,0,0.4);border:.5px solid rgba(255,255,255,0.25);color:#fff;border-radius:16px;padding:5px 10px;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0}
-.tb-btn:active{background:rgba(255,255,255,0.2)}
-#zoom-lv{color:#44ffcc;font-size:12px;font-weight:700;min-width:34px;text-align:center}
+/* ── SCREENS ── */
+.screen { display: none; flex-direction: column; align-items: center; min-height: 100vh; }
+.screen.active { display: flex; }
 
-/* 天氣列 */
-#wbar{position:absolute;top:42px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:3px 8px;background:rgba(0,0,0,0.38);z-index:19;pointer-events:none;flex-wrap:wrap}
-.wi{color:#fff;font-size:11px;display:flex;align-items:center;gap:3px}
-.wv{font-weight:600;color:#ffe082}
-#wx-desc{color:#90caf9}
+/* ══ START ══ */
+#startScreen {
+  justify-content: center; gap: 24px; padding: 32px 20px;
+  background: linear-gradient(160deg, #fff8f0 0%, #ffeee6 100%);
+}
+.logo-icon {
+  width: 96px; height: 96px;
+  background: linear-gradient(135deg, var(--primary), #ff9a5c);
+  border-radius: 28px; font-size: 50px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 12px 36px rgba(255,107,53,.4);
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float { 0%,100%{transform:translateY(0)rotate(-3deg)} 50%{transform:translateY(-10px)rotate(3deg)} }
+.app-title {
+  font-family: 'Nunito', sans-serif; font-size: clamp(28px,7vw,50px);
+  font-weight: 900; color: var(--primary); letter-spacing: -1px;
+  text-align: center;
+}
+.app-sub { font-size: 14px; color: var(--muted); font-weight: 700; text-align: center; }
+.badges { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.badge {
+  background: var(--card); border-radius: 50px; padding: 9px 20px;
+  font-weight: 900; font-size: 14px; box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 5px;
+}
+.badge b { font-family: 'Nunito', sans-serif; font-size: 18px; color: var(--primary); }
+.btn-start {
+  background: linear-gradient(135deg, var(--primary), #ff9a5c);
+  color: #fff; border: none; border-radius: 50px;
+  padding: 17px 60px; font-size: 19px; font-weight: 900; cursor: pointer;
+  box-shadow: 0 8px 28px rgba(255,107,53,.45);
+  transition: transform .15s, box-shadow .15s;
+  font-family: 'Noto Sans TC', sans-serif;
+}
+.btn-start:hover { transform: translateY(-3px); box-shadow: 0 14px 36px rgba(255,107,53,.5); }
 
-/* 縮放 */
-#zbar{position:absolute;bottom:86px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.45);border-radius:20px;padding:5px 14px;z-index:20;width:78%;max-width:300px}
-#zslider{flex:1;-webkit-appearance:none;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;outline:none;cursor:pointer}
-#zslider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;cursor:pointer}
-#zbar span{color:#aaa;font-size:10px;white-space:nowrap}
+/* history on start */
+.hist-box {
+  background: var(--card); border-radius: var(--radius);
+  padding: 16px 20px; box-shadow: var(--shadow);
+  width: 100%; max-width: 420px;
+}
+.hist-box-title { font-size: 12px; font-weight: 900; color: var(--muted); letter-spacing: 1px; margin-bottom: 10px; }
+.hist-mini-rows { display: flex; flex-direction: column; gap: 7px; }
+.hmr { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.hmr-date { color: var(--muted); font-weight: 600; }
+.gpill {
+  font-weight: 900; font-size: 12px; padding: 3px 11px;
+  border-radius: 20px; font-family: 'Nunito', sans-serif;
+}
+.gS{background:#e6fff8;color:#00c896} .gA{background:#fff8e1;color:#f9a825}
+.gB{background:#fff0eb;color:#ef6c00} .gC{background:#fff0ef;color:#f44336}
+.no-rec { font-size: 13px; color: var(--muted); }
 
-/* 浮水印 */
-#overlay{position:absolute;bottom:0;left:0;right:0;padding:8px 10px 10px;background:linear-gradient(transparent,rgba(0,0,0,0.82));pointer-events:none;z-index:5}
-#wm-time{color:#fff;font-size:17px;font-weight:700;letter-spacing:2px;text-shadow:1px 1px 4px #000;font-family:monospace}
-#wm-date{color:#ddd;font-size:11px;margin-top:1px;text-shadow:1px 1px 3px #000}
-#wm-gps{color:#44ffcc;font-size:9.5px;margin-top:2px;text-shadow:1px 1px 3px #000;font-family:monospace}
-#wm-alt{color:#80deea;font-size:9.5px;margin-top:1px;text-shadow:1px 1px 3px #000}
-#wm-addr{color:#ffe082;font-size:9.5px;margin-top:1px;text-shadow:1px 1px 3px #000;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:calc(100% - 120px)}
-#wm-wx{color:#90caf9;font-size:9.5px;margin-top:1px;text-shadow:1px 1px 3px #000}
-#wm-dir{color:#ccc;font-size:9px;margin-top:1px;text-shadow:1px 1px 3px #000}
+/* ══ QUIZ ══ */
+#quizScreen { justify-content: flex-start; }
 
-/* 小地圖 */
-#minimap{position:absolute;bottom:8px;right:8px;width:110px;height:88px;border:2px solid #44ffcc;border-radius:5px;overflow:hidden;background:#1a2a1a;z-index:10;pointer-events:none}
-#mm-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;color:rgba(68,255,204,0.6);font-size:9px;text-align:center;line-height:1.6}
-#mm-tiles{position:relative;width:100%;height:100%;display:none;overflow:hidden}
-#mm-tiles img{position:absolute}
+.topbar {
+  width: 100%; background: var(--card);
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  padding: 10px 14px; position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 10px;
+}
+.prog-wrap { flex: 1; }
+.prog-labels { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 5px; }
+.prog-bar { height: 8px; background: #eee; border-radius: 8px; overflow: hidden; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #ffca28); border-radius: 8px; transition: width .4s; }
+.topbar-ok {
+  background: var(--correct-bg); border-radius: 10px; padding: 5px 12px;
+  display: flex; flex-direction: column; align-items: center; min-width: 56px;
+}
+.topbar-ok .tv { font-family: 'Nunito', sans-serif; font-size: 22px; font-weight: 900; color: var(--correct); line-height: 1; }
+.topbar-ok .tl { font-size: 10px; font-weight: 700; color: #5fcbaa; }
+.timer {
+  background: var(--primary-light); border-radius: 10px; padding: 5px 12px;
+  font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 22px;
+  color: var(--primary); min-width: 78px; text-align: center;
+  transition: background .3s, color .3s;
+}
+.timer.warn   { background: #fff8e1; color: #f9a825; }
+.timer.danger { background: #fff0ef; color: var(--wrong); animation: tpulse .4s ease-in-out infinite alternate; }
+@keyframes tpulse { from{transform:scale(1)} to{transform:scale(1.06)} }
 
-/* 快門列 */
-#cambar{display:flex;align-items:center;padding:10px 16px;background:#1a1a1a;flex-shrink:0;gap:10px}
-#gps-badge{font-size:9px;padding:4px 7px;border-radius:9px;background:rgba(0,200,120,0.12);color:#44ffcc;border:.5px solid #44ffcc;min-width:62px;text-align:center;line-height:1.5;flex-shrink:0}
-#shutter{width:64px;height:64px;border-radius:50%;background:#fff;border:4px solid #888;cursor:pointer;transition:transform .1s,background .15s;flex-shrink:0}
-#shutter:active{transform:scale(0.91)}
-#right-col{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1}
-#status{color:#aaa;font-size:10px;text-align:center}
-#map-btn{background:rgba(0,200,120,0.14);color:#44ffcc;border:.5px solid #44ffcc;padding:5px 12px;border-radius:12px;font-size:11px;cursor:pointer}
-#map-btn:disabled{opacity:.3;cursor:default}
+/* question grid */
+.q-grid {
+  width: 100%; max-width: 1100px; margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px; padding: 12px;
+}
+@media(max-width:900px){ .q-grid{ grid-template-columns: repeat(4,1fr); } }
+@media(max-width:680px){ .q-grid{ grid-template-columns: repeat(3,1fr); } }
+@media(max-width:460px){ .q-grid{ grid-template-columns: repeat(2,1fr); gap:6px; padding:8px; } }
 
-/* 相簿 */
-#gallery{padding:6px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
-.tw{position:relative;aspect-ratio:4/3;border-radius:4px;overflow:hidden;cursor:pointer}
-.tw img{width:100%;height:100%;object-fit:cover}
-.td{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+/* question card */
+.qc {
+  background: var(--card); border-radius: 12px;
+  border: 2px solid #f0f0f0; padding: 10px 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+  transition: border-color .2s, background .2s;
+  position: relative;
+}
+.qc.state-correct { border-color: var(--correct); background: var(--correct-bg); }
+.qc.state-wrong   { border-color: var(--wrong);   background: var(--wrong-bg); }
+.qc.state-locked  { opacity: .5; pointer-events: none; }
+.qc.state-locked::after {
+  content: '⏰'; position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; background: rgba(255,255,255,.7); border-radius: 10px;
+}
+.qc-num { font-size: 10px; font-weight: 900; color: var(--muted); font-family: 'Nunito', sans-serif; align-self: flex-start; }
+.qc-expr {
+  font-size: clamp(14px, 2.2vw, 20px);
+  font-weight: 900; font-family: 'Nunito', sans-serif; white-space: nowrap;
+}
 
-/* 預覽 */
-#pmodal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.93);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:14px}
-#pmodal.show{display:flex}
-#pimg{max-width:100%;max-height:60vh;border-radius:6px;display:block}
-.hint{color:#aaa;font-size:11px;text-align:center;line-height:1.7}.hint b{color:#fff}
-.mbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-#share-btn{background:#44ffcc;color:#000;border:none;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer}
-#dl-btn{background:rgba(255,255,255,0.1);color:#fff;border:.5px solid #555;padding:10px 16px;border-radius:20px;font-size:13px;text-decoration:none;display:inline-block;cursor:pointer}
-#cls-btn{color:#aaa;background:none;border:.5px solid #555;padding:10px 14px;border-radius:20px;font-size:13px;cursor:pointer}
+/* input */
+.qc-inp {
+  width: 100%; max-width: 72px;
+  border: 2px solid #e0e0e0; border-radius: 8px;
+  text-align: center; font-size: clamp(15px,2.5vw,20px);
+  font-weight: 900; font-family: 'Nunito', sans-serif;
+  padding: 5px 4px; outline: none; background: transparent; color: var(--text);
+  transition: border-color .15s;
+  -moz-appearance: textfield;
+}
+.qc-inp::-webkit-inner-spin-button,
+.qc-inp::-webkit-outer-spin-button { -webkit-appearance: none; }
+.qc-inp:focus:not(:read-only) { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,107,53,.15); }
+.qc-inp.inp-correct { border-color: var(--correct); color: var(--correct); background: var(--correct-bg); }
+.qc-inp.inp-wrong   { border-color: var(--wrong);   color: var(--wrong);   background: var(--wrong-bg); }
 
-/* 地圖 Modal */
-#map-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:998;align-items:flex-end;justify-content:center}
-#map-modal.show{display:flex}
-#map-card{background:#1c1c1e;border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:14px;display:flex;flex-direction:column;gap:9px}
-#map-coord{color:#44ffcc;font-size:10px;font-family:monospace;text-align:center}
-#map-addr-ln{color:#ffe082;font-size:11px;text-align:center;min-height:14px}
-#zoom-row{display:flex;gap:6px;justify-content:center}
-.zopt{background:rgba(255,255,255,0.07);color:#aaa;border:.5px solid rgba(255,255,255,0.15);padding:4px 10px;border-radius:10px;font-size:11px;cursor:pointer}
-.zopt.active{background:rgba(0,200,120,0.2);color:#44ffcc;border-color:#44ffcc}
-#map-pw{width:100%;height:200px;border-radius:8px;overflow:hidden;border:1.5px solid #44ffcc;background:#1a2a1a;position:relative}
-#map-pt{position:relative;width:100%;height:100%;overflow:hidden;display:none}
-#map-pt img{position:absolute}
-#map-ld{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(68,255,204,.7);font-size:12px;background:#1a2a1a;z-index:5}
-.mhint{color:#888;font-size:10px;text-align:center}
-.map-btns{display:flex;gap:10px;justify-content:center}
-#use-map{background:#44ffcc;color:#000;border:none;padding:9px 22px;border-radius:18px;font-size:13px;font-weight:600;cursor:pointer}
-#close-map{color:#aaa;background:none;border:.5px solid #555;padding:9px 16px;border-radius:18px;font-size:13px;cursor:pointer}
+/* feedback */
+.qc-fb {
+  font-size: 11px; font-weight: 900; text-align: center; line-height: 1.35;
+  animation: fbup .2s ease;
+}
+@keyframes fbup { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
+.qc-fb.fb-ok  { color: var(--correct); }
+.qc-fb.fb-err { color: var(--wrong); }
+.qc-fb.fb-ans { color: var(--wrong); font-size: 10px; }
 
-/* 無相機 */
-#nocam{display:none;flex-direction:column;align-items:center;justify-content:center;color:#888;font-size:14px;text-align:center;padding:40px 20px;line-height:2;position:absolute;inset:0;z-index:30;background:#000}
-#retrybtn{background:#44ffcc;color:#000;border:none;padding:9px 22px;border-radius:18px;cursor:pointer;font-size:13px;font-weight:600;margin-top:8px}
+/* ══ TIMESUP BANNER ══ */
+.timesup-banner {
+  display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  background: linear-gradient(135deg, #f44336, #ff7043);
+  color: #fff; text-align: center; padding: 13px;
+  font-size: 17px; font-weight: 900;
+  box-shadow: 0 4px 20px rgba(244,67,54,.5);
+  animation: slideDown .4s cubic-bezier(.36,.07,.19,.97);
+}
+@keyframes slideDown { from{transform:translateY(-100%)} to{transform:translateY(0)} }
+.timesup-banner.show { display: block; }
+
+/* ══ RESULT ══ */
+#resultScreen {
+  justify-content: center; gap: 16px; padding: 28px 20px;
+  background: linear-gradient(160deg, #fff8f0, #ffeee6);
+}
+.r-card {
+  background: var(--card); border-radius: 22px; padding: 26px 30px;
+  box-shadow: var(--shadow); display: flex; flex-direction: column;
+  align-items: center; gap: 7px; width: 100%; max-width: 340px; text-align: center;
+}
+.r-emoji  { font-size: 66px; animation: rpop .5s cubic-bezier(.36,.07,.19,.97); }
+@keyframes rpop { 0%{transform:scale(0)rotate(-15deg)} 80%{transform:scale(1.1)rotate(2deg)} 100%{transform:scale(1)} }
+.r-grade  { font-size: 60px; font-weight: 900; font-family: 'Nunito', sans-serif; line-height: 1; }
+.r-grade.S{color:#00c896} .r-grade.A{color:#f9a825} .r-grade.B{color:#ff6b35} .r-grade.C{color:#f44336}
+.r-score  { font-size: 21px; font-weight: 900; }
+.r-pct    { font-size: 14px; color: var(--muted); font-weight: 700; }
+.r-date   { font-size: 12px; color: var(--muted); }
+
+.stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%; max-width: 340px; }
+.sb { background: var(--card); border-radius: 13px; padding: 13px 6px; box-shadow: var(--shadow); text-align: center; }
+.sb .sv { font-size: 26px; font-weight: 900; font-family: 'Nunito', sans-serif; }
+.sb .sk { font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 3px; }
+.sb-ok .sv{color:var(--correct)} .sb-err .sv{color:var(--wrong)} .sb-sk .sv{color:var(--blue)}
+
+.r-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 340px; }
+.btn-retry {
+  background: linear-gradient(135deg, var(--primary), #ff9a5c);
+  color: #fff; border: none; border-radius: 50px;
+  padding: 14px 0; font-size: 16px; font-weight: 900; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(255,107,53,.4);
+  transition: transform .15s; font-family: 'Noto Sans TC', sans-serif; flex: 1;
+}
+.btn-retry:hover { transform: translateY(-2px); }
+.btn-sec {
+  background: var(--card); border: 2px solid #eee; border-radius: 50px;
+  padding: 12px 0; font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: border-color .15s, color .15s;
+  font-family: 'Noto Sans TC', sans-serif; flex: 1; white-space: nowrap;
+}
+.btn-sec:hover { border-color: var(--primary); color: var(--primary); }
+.btn-sec.err-btn:hover { border-color: var(--wrong); color: var(--wrong); }
+.err-badge {
+  display: inline-block; background: var(--wrong); color: #fff;
+  border-radius: 50%; width: 17px; height: 17px; font-size: 10px;
+  text-align: center; line-height: 17px; font-family: 'Nunito', sans-serif;
+  font-weight: 900; margin-left: 3px; vertical-align: middle;
+}
+
+/* ══ MODALS ══ */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.5); z-index: 300;
+  align-items: center; justify-content: center; padding: 16px;
+}
+.overlay.open { display: flex; }
+.modal {
+  background: var(--bg); border-radius: 22px; padding: 22px;
+  width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+}
+.modal-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.modal-hd h2 { font-size: 18px; font-weight: 900; }
+.btn-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--muted); }
+
+/* wrong book */
+.wlist { display: flex; flex-direction: column; gap: 9px; }
+.witem {
+  background: var(--card); border-radius: 13px; padding: 13px 15px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+  border-left: 4px solid var(--wrong);
+}
+.wi-expr { font-size: 19px; font-weight: 900; font-family: 'Nunito', sans-serif; min-width: 80px; }
+.wi-detail { display: flex; flex-direction: column; gap: 3px; }
+.wi-u { font-size: 13px; color: var(--wrong); font-weight: 700; }
+.wi-u span, .wi-c span { font-family: 'Nunito', sans-serif; font-size: 15px; }
+.wi-c { font-size: 13px; color: var(--correct); font-weight: 700; }
+
+/* history */
+.hlist { display: flex; flex-direction: column; gap: 9px; }
+.hitem {
+  background: var(--card); border-radius: 13px; padding: 13px 16px;
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 3px 12px; box-shadow: 0 2px 6px rgba(0,0,0,.05);
+}
+.hi-date   { font-size: 13px; color: var(--muted); font-weight: 700; }
+.hi-detail { font-size: 12px; color: var(--muted); }
+.hi-score  { font-size: 24px; font-weight: 900; font-family: 'Nunito', sans-serif; text-align: center; }
+.hi-grade  { text-align: center; }
+.btn-clear {
+  background: none; border: 2px solid #eee; border-radius: 50px;
+  padding: 9px 22px; font-size: 13px; font-weight: 700; color: var(--muted);
+  cursor: pointer; margin-top: 12px; display: block;
+  transition: border-color .15s, color .15s;
+  font-family: 'Noto Sans TC', sans-serif;
+}
+.btn-clear:hover { border-color: var(--wrong); color: var(--wrong); }
+
+/* confetti */
+.cf { position: fixed; top: -20px; border-radius: 3px; animation: cfFall linear forwards; pointer-events: none; z-index: 999; }
+@keyframes cfFall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
 </style>
 </head>
 <body>
-<div id="app">
-  <div id="vf">
-    <video id="videoEl" autoplay playsinline muted></video>
-    <div id="nocam">
-      <div style="font-size:48px;margin-bottom:8px">📷</div>
-      無法存取相機<br>請允許相機與位置權限<br>
-      <button id="retrybtn" onclick="initCamera()">重試</button>
-    </div>
-    <canvas id="canvas"></canvas>
 
-    <div id="topbar">
-      <button class="tb-btn" onclick="toggleFacing()">🔄 翻轉</button>
-      <div id="zoom-lv">1.0×</div>
-      <button class="tb-btn" id="map-topbtn" onclick="openMapModal()" style="opacity:.4" disabled>📍 地圖</button>
-    </div>
+<div class="timesup-banner" id="timesupBanner">⏰ 時間到！剩餘未作答題目已鎖定</div>
 
-    <div id="wbar">
-      <div class="wi">🌡 <span class="wv" id="wb-temp">--</span>°C</div>
-      <div class="wi"><span id="wx-desc">天氣查詢中</span></div>
-      <div class="wi">⛰ <span class="wv" id="wb-alt">--</span> m</div>
-    </div>
-
-    <div id="zbar">
-      <span>1×</span>
-      <input type="range" id="zslider" min="1" max="5" step="0.1" value="1">
-      <span>5×</span>
-    </div>
-
-    <div id="overlay">
-      <div id="wm-time">--:--:--</div>
-      <div id="wm-date">----.--.--</div>
-      <div id="wm-gps">GPS 定位中...</div>
-      <div id="wm-alt"></div>
-      <div id="wm-addr"></div>
-      <div id="wm-wx"></div>
-      <div id="wm-dir"></div>
-    </div>
-
-    <div id="minimap">
-      <div id="mm-ph">按📍<br>抓地圖</div>
-      <div id="mm-tiles"></div>
-    </div>
+<!-- ══ START ══ -->
+<div id="startScreen" class="screen active">
+  <div class="logo-icon">✖️</div>
+  <div class="app-title">九九乘法大挑戰</div>
+  <div class="app-sub">100 題・自填答案・5 分鐘計時</div>
+  <div class="badges">
+    <div class="badge">📋 <b>100</b> 道題目</div>
+    <div class="badge">⏱ <b>5:00</b> 計時</div>
+    <div class="badge">✏️ 自填答案</div>
   </div>
-
-  <div id="cambar">
-    <div id="gps-badge">● 定位中</div>
-    <button id="shutter" onclick="takePhoto()"></button>
-    <div id="right-col">
-      <div id="status">準備拍攝</div>
-      <button id="map-btn" disabled onclick="openMapModal()">📍 抓地圖</button>
-    </div>
-  </div>
-  <div id="gallery"></div>
-</div>
-
-<div id="pmodal">
-  <img id="pimg" src="" alt="">
-  <p class="hint" id="save-hint"></p>
-  <div class="mbtns">
-    <button id="share-btn" onclick="sharePhoto()">📤 分享 / 存相簿</button>
-    <a id="dl-btn" href="#" download="photo.jpg">⬇ 下載</a>
-    <button id="cls-btn" onclick="closePrev()">關閉</button>
+  <button class="btn-start" onclick="startQuiz()">🚀 開始測驗</button>
+  <div class="hist-box">
+    <div class="hist-box-title">📊 最近紀錄</div>
+    <div id="startHistList"><div class="no-rec">尚無紀錄，快來挑戰！</div></div>
   </div>
 </div>
 
-<div id="map-modal">
-  <div id="map-card">
-    <div id="map-coord">載入中...</div>
-    <div id="map-addr-ln"></div>
-    <div id="zoom-row">
-      <button class="zopt" onclick="setMapZoom(14,this)">市區</button>
-      <button class="zopt active" onclick="setMapZoom(15,this)">街道</button>
-      <button class="zopt" onclick="setMapZoom(16,this)">精細</button>
-      <button class="zopt" onclick="setMapZoom(17,this)">超精細</button>
+<!-- ══ QUIZ ══ -->
+<div id="quizScreen" class="screen">
+  <div class="topbar">
+    <div class="prog-wrap">
+      <div class="prog-labels">
+        <span id="progLabel">0 / 100</span>
+        <span id="answeredLabel">已答 0 題</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
     </div>
-    <div id="map-pw">
-      <div id="map-ld">地圖載入中...</div>
-      <div id="map-pt"></div>
+    <div class="topbar-ok">
+      <span class="tv" id="liveOk">0</span>
+      <span class="tl">答對</span>
     </div>
-    <p class="mhint">確認位置無誤後按「使用此地圖」</p>
-    <div class="map-btns">
-      <button id="use-map" onclick="useThisMap()">✔ 使用此地圖</button>
-      <button id="close-map" onclick="closeMapModal()">取消</button>
+    <div class="timer" id="timerEl">5:00</div>
+  </div>
+  <div class="q-grid" id="qGrid"></div>
+</div>
+
+<!-- ══ RESULT ══ -->
+<div id="resultScreen" class="screen">
+  <div class="r-card">
+    <div class="r-emoji" id="rEmoji">🎉</div>
+    <div class="r-grade" id="rGrade">S</div>
+    <div class="r-score" id="rScore">答對 95 題</div>
+    <div class="r-pct"   id="rPct">正確率 95%・用時 4分20秒</div>
+    <div class="r-date"  id="rDate"></div>
+  </div>
+  <div class="stat-row">
+    <div class="sb sb-ok">  <div class="sv" id="svOk">0</div>  <div class="sk">✅ 答對</div></div>
+    <div class="sb sb-err"> <div class="sv" id="svErr">0</div> <div class="sk">❌ 答錯</div></div>
+    <div class="sb sb-sk">  <div class="sv" id="svSk">0</div>  <div class="sk">⏭ 未答</div></div>
+  </div>
+  <div class="r-btns">
+    <button class="btn-retry" onclick="startQuiz()">🔄 再來一次</button>
+  </div>
+  <div class="r-btns">
+    <button class="btn-sec err-btn" onclick="openWrongBook()">📒 錯題本 <span class="err-badge" id="errBadge">0</span></button>
+    <button class="btn-sec" onclick="openHistory()">📋 歷史紀錄</button>
+  </div>
+</div>
+
+<!-- ══ WRONG BOOK MODAL ══ -->
+<div class="overlay" id="wrongOverlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <h2>📒 本次錯題本</h2>
+      <button class="btn-close" onclick="closeOverlay('wrongOverlay')">✕</button>
     </div>
+    <div class="wlist" id="wrongList"></div>
+  </div>
+</div>
+
+<!-- ══ HISTORY MODAL ══ -->
+<div class="overlay" id="histOverlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <h2>📋 所有紀錄</h2>
+      <button class="btn-close" onclick="closeOverlay('histOverlay')">✕</button>
+    </div>
+    <div class="hlist" id="histList"></div>
+    <button class="btn-clear" onclick="clearHistory()">🗑 清除全部紀錄</button>
   </div>
 </div>
 
 <script>
-'use strict';
-const pad=n=>String(n).padStart(2,'0');
-const DAYS=['日','一','二','三','四','五','六'];
-const DIRS=['北','東北','東','東南','南','西南','西','西北'];
+/* ── CONFIG ── */
+const TOTAL    = 100;
+const DURATION = 300;
+const HIST_KEY = 'multiTest_v3';
 
-let gps={lat:null,lon:null,acc:null,alt:null,ok:false};
-let heading=null;
-let wx={temp:null,desc:'',ready:false};
-let photos=[],curIdx=0;
-let mapReady=false,mapZoom=15,usedZoom=15;
-let stream=null,vtrack=null,zoom=1,facing='environment';
-let addr='',lastGeo=0,lastWx=0;
+/* ── STATE ── */
+let questions     = [];
+let timeLeft      = DURATION;
+let timerInt      = null;
+let answeredCount = 0;
+let correctCount  = 0;
+let wrongItems    = [];
 
-const $=id=>document.getElementById(id);
-function setText(id,v){const e=$(id);if(e)e.textContent=v;}
-function setStatus(v){setText('status',v);}
-const headDir=h=>h!=null?DIRS[Math.round(h/45)%8]:'';
-
-/* ── tile ── */
-function ll2t(la,lo,z){
-  const n=1<<z,x=Math.floor((lo+180)/360*n),r=la*Math.PI/180;
-  return{x,y:Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n)};
-}
-function t2ll(x,y,z){
-  const n=1<<z;
-  return{lat:Math.atan(Math.sinh(Math.PI*(1-2*y/n)))*180/Math.PI,lon:x/n*360-180};
+/* ── GENERATE ── */
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
-/* ── 相機 ── */
-async function initCamera(){
-  const vid=$('videoEl'),nc=$('nocam');
-  if(stream)stream.getTracks().forEach(t=>t.stop());
-  try{
-    stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:facing},width:{ideal:3840},height:{ideal:2160}},audio:false});
-    vid.srcObject=stream;vid.style.display='block';nc.style.display='none';
-    vtrack=stream.getVideoTracks()[0];
-    vid.onloadedmetadata=()=>{
-      if(vid.videoWidth&&vid.videoHeight)
-        $('vf').style.aspectRatio=`${vid.videoWidth}/${vid.videoHeight}`;
-    };
-    setupZoom();
-  }catch(e){vid.style.display='none';nc.style.display='flex';setStatus('相機未啟動');}
+function genQuestions() {
+  const base = [];
+  for (let a = 1; a <= 9; a++) for (let b = 1; b <= 9; b++) base.push({ a, b, ans: a * b });
+  return Array.from({ length: TOTAL }, () => {
+    const q = base[Math.floor(Math.random() * base.length)];
+    return { a: q.a, b: q.b, ans: q.ans, answered: false, locked: false, userAns: null };
+  });
 }
-function toggleFacing(){facing=facing==='environment'?'user':'environment';initCamera();}
 
-/* ── 縮放 ── */
-function setupZoom(){
-  const sl=$('zslider');
-  sl.value=1;zoom=1;setText('zoom-lv','1.0×');
-  $('videoEl').style.transform='scale(1)';
-  const caps=vtrack?.getCapabilities?.()??{};
-  if(caps.zoom){
-    sl.min=caps.zoom.min||1;sl.max=caps.zoom.max||5;
-    sl.oninput=()=>{
-      zoom=parseFloat(sl.value);setText('zoom-lv',zoom.toFixed(1)+'×');
-      vtrack.applyConstraints({advanced:[{zoom}]}).catch(()=>{});
-    };
-  }else{
-    sl.min=1;sl.max=5;
-    sl.oninput=()=>{
-      zoom=parseFloat(sl.value);setText('zoom-lv',zoom.toFixed(1)+'×');
-      $('videoEl').style.transform=`scale(${zoom})`;
-    };
+/* ── RENDER GRID ── */
+function renderGrid() {
+  const grid = document.getElementById('qGrid');
+  grid.innerHTML = '';
+  questions.forEach((q, i) => {
+    const card = document.createElement('div');
+    card.className = 'qc';
+    card.id = 'qc-' + i;
+    card.innerHTML = `
+      <div class="qc-num">#${i + 1}</div>
+      <div class="qc-expr">${q.a} × ${q.b} =</div>
+      <input class="qc-inp" id="inp-${i}" type="number" inputmode="numeric"
+        min="1" max="81" autocomplete="off" placeholder="?"
+        onkeydown="handleKey(event,${i})"
+        onfocus="currentFocus=${i}">
+      <div class="qc-fb" id="fb-${i}" style="display:none"></div>
+    `;
+    grid.appendChild(card);
+  });
+  updateTopbar();
+}
+
+/* ── INPUT HANDLING ── */
+let currentFocus = 0;
+
+function handleKey(e, i) {
+  if (e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault();
+    commitAnswer(i);
   }
 }
 
-/* ── GPS ── */
-function initGPS(){
-  if(!navigator.geolocation){setText('wm-gps','GPS 不支援');return;}
-  const opt={enableHighAccuracy:true,maximumAge:0,timeout:15000};
-  navigator.geolocation.getCurrentPosition(onGPS,onGPSErr,{...opt,timeout:12000});
-  navigator.geolocation.watchPosition(onGPS,onGPSErr,opt);
-}
-function onGPS(pos){
-  gps.lat=pos.coords.latitude;gps.lon=pos.coords.longitude;
-  gps.acc=Math.round(pos.coords.accuracy);
-  gps.alt=pos.coords.altitude!=null?Math.round(pos.coords.altitude):null;
-  gps.ok=true;
-  if(pos.coords.heading!=null&&!isNaN(pos.coords.heading))heading=Math.round(pos.coords.heading);
-  const ld=gps.lat>=0?'N':'S',lo=gps.lon>=0?'E':'W';
-  setText('wm-gps',`${Math.abs(gps.lat).toFixed(5)}°${ld}  ${Math.abs(gps.lon).toFixed(5)}°${lo}  ±${gps.acc}m`);
-  if(gps.alt!=null){setText('wm-alt',`海拔 ${gps.alt} m`);setText('wb-alt',gps.alt);}
-  else{setText('wm-alt','');setText('wb-alt','--');}
-  setText('gps-badge',`● ±${gps.acc}m`);
-  if(heading!=null)setText('wm-dir',`方位 ${headDir(heading)} ${heading}°`);
-  $('map-btn').disabled=false;
-  $('map-topbtn').disabled=false;$('map-topbtn').style.opacity='1';
-  reverseGeocode();
-  fetchWeather();
-}
-function onGPSErr(){setText('wm-gps','GPS 定位失敗');setText('gps-badge','● 無GPS');}
+function commitAnswer(i) {
+  const q   = questions[i];
+  if (q.answered || q.locked) return;
 
-/* ── 方位角 ── */
-function initCompass(){
-  if(!window.DeviceOrientationEvent)return;
-  if(typeof DeviceOrientationEvent.requestPermission==='function'){
-    window._needCp=true;
-  }else{
-    window.addEventListener('deviceorientation',onOrient,{passive:true});
+  const inp = document.getElementById('inp-' + i);
+  const raw = inp.value.trim();
+  if (raw === '') return; // don't lock blank
+
+  const val = parseInt(raw, 10);
+  if (isNaN(val)) return;
+
+  q.answered = true;
+  q.userAns  = val;
+  answeredCount++;
+
+  const card = document.getElementById('qc-' + i);
+  const fb   = document.getElementById('fb-' + i);
+  inp.readOnly = true;
+
+  if (val === q.ans) {
+    correctCount++;
+    card.classList.add('state-correct');
+    inp.classList.add('inp-correct');
+    fb.textContent  = '✅ 答對了！';
+    fb.className    = 'qc-fb fb-ok';
+    fb.style.display = '';
+  } else {
+    wrongItems.push({ a: q.a, b: q.b, ans: q.ans, userAns: val });
+    card.classList.add('state-wrong');
+    inp.classList.add('inp-wrong');
+    fb.innerHTML    = `❌ 答錯了！<br>正解是 <b>${q.ans}</b>`;
+    fb.className    = 'qc-fb fb-err';
+    fb.style.display = '';
+  }
+
+  updateTopbar();
+  if (answeredCount >= TOTAL) endQuiz(false);
+  else moveNext(i);
+}
+
+function moveNext(from) {
+  for (let k = 1; k <= TOTAL; k++) {
+    const next = (from + k) % TOTAL;
+    if (!questions[next].answered && !questions[next].locked) {
+      const inp = document.getElementById('inp-' + next);
+      currentFocus = next;
+      inp.focus();
+      inp.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
   }
 }
-function reqCompass(){
-  if(!window._needCp)return;window._needCp=false;
-  DeviceOrientationEvent.requestPermission()
-    .then(p=>{if(p==='granted')window.addEventListener('deviceorientation',onOrient,{passive:true});})
-    .catch(()=>{});
-}
-function onOrient(e){
-  const h=e.webkitCompassHeading??((e.alpha!=null)?(360-e.alpha+360)%360:null);
-  if(h!=null){heading=Math.round(h);setText('wm-dir',`方位 ${headDir(heading)} ${heading}°`);}
+
+function updateTopbar() {
+  document.getElementById('progLabel').textContent    = `${answeredCount} / ${TOTAL}`;
+  document.getElementById('answeredLabel').textContent = `已答 ${answeredCount} 題`;
+  document.getElementById('progFill').style.width      = (answeredCount / TOTAL * 100) + '%';
+  document.getElementById('liveOk').textContent        = correctCount;
 }
 
-/* ── 天氣（Open-Meteo 免費無 Key，HTTPS 可用）── */
-function fetchWeather(){
-  if(!gps.ok)return;
-  const now=Date.now();
-  if(now-lastWx<600000&&wx.ready)return;
-  lastWx=now;
-  const url=`https://api.open-meteo.com/v1/forecast?`+
-    `latitude=${gps.lat.toFixed(4)}&longitude=${gps.lon.toFixed(4)}`+
-    `&current=temperature_2m,weather_code&timezone=auto`;
-  fetch(url).then(r=>r.json()).then(d=>{
-    const c=d.current;
-    wx.temp=Math.round(c.temperature_2m*10)/10;
-    wx.desc=wmoCode(c.weather_code);
-    wx.ready=true;
-    setText('wb-temp',wx.temp);
-    setText('wx-desc',wx.desc);
-    setText('wm-wx',`${wx.temp}°C ${wx.desc}`);
-  }).catch(()=>setText('wx-desc','天氣取得失敗'));
-}
-function wmoCode(c){
-  if(c===0)return'☀️ 晴天';if(c<=2)return'🌤 多雲';if(c===3)return'☁️ 陰天';
-  if(c<=49)return'🌫 霧';if(c<=59)return'🌦 毛毛雨';if(c<=69)return'🌧 雨';
-  if(c<=79)return'❄️ 雪';if(c<=82)return'🌦 陣雨';if(c<=86)return'🌨 雪陣';
-  if(c<=99)return'⛈ 雷雨';return'--';
+/* ── TIMER ── */
+function startTimer() {
+  clearInterval(timerInt);
+  timerInt = setInterval(() => {
+    timeLeft--;
+    renderTimer();
+    if (timeLeft <= 0) { timeLeft = 0; renderTimer(); endQuiz(true); }
+  }, 1000);
+  renderTimer();
 }
 
-/* ── 地址反查 ── */
-function reverseGeocode(){
-  if(!gps.ok)return;
-  const now=Date.now();
-  if(now-lastGeo<30000&&addr)return;
-  lastGeo=now;
-  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${gps.lat}&lon=${gps.lon}&format=json&accept-language=zh-TW`,
-    {headers:{'User-Agent':'WatermarkCamera/8.1'}})
-    .then(r=>r.json()).then(d=>{
-      if(d?.address){
-        const a=d.address;
-        addr=[a.county||a.city||a.state,a.suburb||a.town||a.district,a.road||a.street,a.house_number]
-          .filter(Boolean).join('');
-        setText('wm-addr',addr);
-        setText('map-addr-ln',addr);
+function renderTimer() {
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  const el = document.getElementById('timerEl');
+  el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+  el.className = 'timer' + (timeLeft <= 30 ? ' danger' : timeLeft <= 60 ? ' warn' : '');
+}
+
+/* ── START / END ── */
+function startQuiz() {
+  questions     = genQuestions();
+  timeLeft      = DURATION;
+  answeredCount = 0;
+  correctCount  = 0;
+  wrongItems    = [];
+  currentFocus  = 0;
+
+  document.getElementById('timesupBanner').classList.remove('show');
+  showScreen('quizScreen');
+  renderGrid();
+  startTimer();
+
+  // focus first input
+  setTimeout(() => { document.getElementById('inp-0').focus(); }, 120);
+}
+
+function endQuiz(timesUp) {
+  clearInterval(timerInt);
+
+  if (timesUp) {
+    document.getElementById('timesupBanner').classList.add('show');
+    // Lock all unanswered
+    questions.forEach((q, i) => {
+      if (!q.answered) {
+        q.locked = true;
+        const inp = document.getElementById('inp-' + i);
+        if (inp) { inp.readOnly = true; inp.placeholder = '—'; }
+        document.getElementById('qc-' + i).classList.add('state-locked');
       }
-    }).catch(()=>{});
-}
-
-/* ── Tile 渲染（純 img，無 CORS）── */
-function renderTiles(cid,lat,lon,z,W,H){
-  const ct=$(cid);ct.innerHTML='';
-  ct.style.cssText=`position:relative;width:${W}px;height:${H}px;overflow:hidden`;
-  const{x,y}=ll2t(lat,lon,z);
-  const TS=256,TL=t2ll(x,y,z),TR=t2ll(x+1,y,z),BL=t2ll(x,y+1,z);
-  const fx=(lon-TL.lon)/(TR.lon-TL.lon),fy=(TL.lat-lat)/(TL.lat-BL.lat);
-  const ox=W/2-Math.round(fx*TS),oy=H/2-Math.round(fy*TS);
-  const tr=Math.ceil(Math.max(W,H)/TS)+1;
-  const sv=['a','b','c'];
-  for(let dy=-tr;dy<=tr;dy++){
-    for(let dx=-tr;dx<=tr;dx++){
-      const tx=x+dx,ty=y+dy;if(ty<0)continue;
-      const ix=ox+dx*TS,iy=oy+dy*TS;
-      if(ix+TS<0||ix>W||iy+TS<0||iy>H)continue;
-      const img=document.createElement('img');
-      img.src=`https://${sv[(Math.abs(tx)+Math.abs(ty))%3]}.tile.openstreetmap.org/${z}/${tx}/${ty}.png`;
-      img.style.cssText=`position:absolute;width:${TS}px;height:${TS}px;left:${ix}px;top:${iy}px;pointer-events:none`;
-      ct.appendChild(img);
-    }
-  }
-  const mk=document.createElement('div');
-  mk.style.cssText=`position:absolute;left:${W/2}px;top:${H/2}px;transform:translate(-50%,-50%);z-index:10;pointer-events:none`;
-  mk.innerHTML=`<svg width="26" height="26" viewBox="0 0 26 26">
-    <circle cx="13" cy="13" r="11" fill="rgba(229,57,53,0.18)" stroke="rgba(229,57,53,0.45)" stroke-width="1"/>
-    <line x1="2" y1="13" x2="24" y2="13" stroke="#e53935" stroke-width="2.2"/>
-    <line x1="13" y1="2" x2="13" y2="24" stroke="#e53935" stroke-width="2.2"/>
-    <circle cx="13" cy="13" r="4.5" fill="rgba(229,57,53,0.92)" stroke="#fff" stroke-width="2"/>
-  </svg>`;
-  ct.appendChild(mk);
-  const cr=document.createElement('div');
-  cr.style.cssText='position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,0.8);color:#333;font-size:7px;text-align:center;padding:1px;z-index:11;pointer-events:none';
-  cr.textContent='© OpenStreetMap contributors';
-  ct.appendChild(cr);
-}
-
-/* ── 地圖 Modal ── */
-function setMapZoom(z,btn){
-  mapZoom=z;
-  document.querySelectorAll('.zopt').forEach(b=>b.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-  if(gps.ok){
-    const pw=$('map-pw');
-    renderTiles('map-pt',gps.lat,gps.lon,mapZoom,pw.offsetWidth||360,200);
-    $('map-pt').style.display='block';
+    });
+    setTimeout(showResult, 1600);
+  } else {
+    showResult();
   }
 }
-function openMapModal(){
-  if(!gps.ok){alert('GPS 尚未定位');return;}
-  const ld=gps.lat>=0?'N':'S',lo=gps.lon>=0?'E':'W';
-  setText('map-coord',`${Math.abs(gps.lat).toFixed(5)}°${ld}  ${Math.abs(gps.lon).toFixed(5)}°${lo}  ±${gps.acc}m`);
-  setText('map-addr-ln',addr||'地址查詢中...');
-  $('map-ld').style.display='flex';$('map-pt').style.display='none';
-  $('map-modal').classList.add('show');
-  setTimeout(()=>{
-    const pw=$('map-pw');
-    renderTiles('map-pt',gps.lat,gps.lon,mapZoom,pw.offsetWidth||360,200);
-    $('map-ld').style.display='none';$('map-pt').style.display='block';
-  },150);
-}
-function closeMapModal(){$('map-modal').classList.remove('show');}
-function useThisMap(){
-  usedZoom=mapZoom;closeMapModal();
-  renderTiles('mm-tiles',gps.lat,gps.lon,usedZoom,110,88);
-  $('mm-tiles').style.display='block';$('mm-ph').style.display='none';
-  mapReady=true;setText('map-btn','📍 重新抓');setStatus('地圖已更新 ✓');
+
+function showResult() {
+  const skipped = TOTAL - answeredCount;
+  const wrong   = answeredCount - correctCount;
+  const pct     = Math.round(correctCount / TOTAL * 100);
+  const used    = DURATION - timeLeft;
+  const um = Math.floor(used / 60), us = used % 60;
+  const { grade, emoji } = getGrade(pct);
+  const now = new Date();
+
+  saveHistory({ date: now.toISOString(), correct: correctCount, wrong, skipped, pct, time: used });
+
+  document.getElementById('rEmoji').textContent  = emoji;
+  const ge = document.getElementById('rGrade');
+  ge.textContent = grade; ge.className = 'r-grade ' + grade;
+  document.getElementById('rScore').textContent  = `答對 ${correctCount} 題`;
+  document.getElementById('rPct').textContent    = `正確率 ${pct}%・用時 ${um}分${us.toString().padStart(2,'0')}秒`;
+  document.getElementById('rDate').textContent   = formatDate(now) + ' 的成績';
+  document.getElementById('svOk').textContent    = correctCount;
+  document.getElementById('svErr').textContent   = wrong;
+  document.getElementById('svSk').textContent    = skipped;
+  document.getElementById('errBadge').textContent = wrongItems.length;
+
+  loadStartHistory();
+  showScreen('resultScreen');
+  if (pct >= 90) launchConfetti();
 }
 
-/* ── 拍照 ── */
-async function takePhoto(){
-  reqCompass();
-  const vid=$('videoEl');
-  if(!vid.srcObject){setStatus('請先啟動相機');return;}
-  setStatus('處理中...');
-  const VW=vid.videoWidth||1280,VH=vid.videoHeight||960;
-  const cvs=$('canvas');cvs.width=VW;cvs.height=VH;
-  const ctx=cvs.getContext('2d');
+function getGrade(p) {
+  if (p >= 95) return { grade: 'S', emoji: '🏆' };
+  if (p >= 85) return { grade: 'A', emoji: '🌟' };
+  if (p >= 70) return { grade: 'B', emoji: '😊' };
+  return           { grade: 'C', emoji: '💪' };
+}
 
-  if(facing==='user'){
-    ctx.save();ctx.scale(-1,1);ctx.drawImage(vid,-VW,0,VW,VH);ctx.restore();
-  }else if(zoom>1&&!(vtrack?.getCapabilities?.()?.zoom)){
-    const cW=VW/zoom,cH=VH/zoom;
-    ctx.drawImage(vid,(VW-cW)/2,(VH-cH)/2,cW,cH,0,0,VW,VH);
-  }else{
-    ctx.drawImage(vid,0,0,VW,VH);
+/* ── WRONG BOOK ── */
+function openWrongBook() {
+  const el = document.getElementById('wrongList');
+  if (!wrongItems.length) {
+    el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px;font-size:14px">🎉 本次沒有錯題！太厲害了！</div>';
+  } else {
+    el.innerHTML = wrongItems.map(w => `
+      <div class="witem">
+        <div class="wi-expr">${w.a} × ${w.b}</div>
+        <div class="wi-detail">
+          <div class="wi-u">❌ 你答：<span>${w.userAns}</span></div>
+          <div class="wi-c">✅ 正解：<span>${w.ans}</span></div>
+        </div>
+      </div>
+    `).join('');
   }
-
-  const now=new Date();
-  const tStr=`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-  const dStr=`${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())}`;
-  const dtStr=`${dStr} 週${DAYS[now.getDay()]}`;
-  const ld=gps.lat>=0?'N':'S',lo=gps.lon>=0?'E':'W';
-  const gStr=gps.ok
-    ?`${Math.abs(gps.lat).toFixed(5)}°${ld}  ${Math.abs(gps.lon).toFixed(5)}°${lo}  ±${gps.acc}m`
-    :'GPS 未定位';
-
-  // 組合浮水印行
-  const lines=[];
-  lines.push({t:tStr,      c:'#ffffff',s:1.38,b:true, m:true});
-  lines.push({t:dtStr,     c:'#dddddd',s:0.85,b:false,m:false});
-  if(gps.ok)           lines.push({t:gStr,                     c:'#44ffcc',s:0.78,b:false,m:true});
-  if(gps.alt!=null)    lines.push({t:`海拔 ${gps.alt} m`,      c:'#80deea',s:0.78,b:false,m:false});
-  if(addr)             lines.push({t:addr,                     c:'#ffe082',s:0.78,b:false,m:false});
-  if(wx.ready)         lines.push({t:`${wx.temp}°C ${wx.desc}`,c:'#90caf9',s:0.78,b:false,m:false});
-  if(heading!=null)    lines.push({t:`方位 ${headDir(heading)} ${heading}°`,c:'#cccccc',s:0.75,b:false,m:false});
-
-  const fs=Math.max(14,Math.round(VW*0.030));
-  const lh=Math.round(fs*1.55);
-  const bH=Math.round(lh*(lines.length+0.9));
-  const mW=Math.round(VW*0.22),mH=Math.round(mW*0.80);
-  const mx=VW-mW-12,my=VH-mH-12;
-
-  const gr=ctx.createLinearGradient(0,VH-bH,0,VH);
-  gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,0.85)');
-  ctx.fillStyle=gr;ctx.fillRect(0,VH-bH,VW,bH);
-
-  ctx.shadowColor='#000';ctx.shadowBlur=5;
-  let ty=VH-bH+lh*0.88;
-  const maxW=mx-14-8;
-  lines.forEach(l=>{
-    const sz=Math.round(fs*l.s);
-    ctx.font=`${l.b?'bold ':''} ${sz}px ${l.m?'monospace':'sans-serif'}`;
-    ctx.fillStyle=l.c;
-    let txt=l.t;
-    while(ctx.measureText(txt).width>maxW&&txt.length>4)txt=txt.slice(0,-1);
-    ctx.fillText(txt,14,ty);
-    ty+=lh;
-  });
-  ctx.shadowBlur=0;
-
-  if(mapReady)await drawMapOnCanvas(ctx,VW,VH,mx,my,mW,mH,usedZoom);
-  else drawFallback(ctx,mx,my,mW,mH);
-
-  const fnT=`${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  const fnD=`${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
-  const url=cvs.toDataURL('image/jpeg',0.94);
-  photos.unshift({url,tStr:fnT,dStr:fnD});
-  renderGallery();setStatus(`已拍攝 ${photos.length} 張`);
-  $('shutter').style.background='#44ffcc';
-  setTimeout(()=>$('shutter').style.background='#fff',200);
+  document.getElementById('wrongOverlay').classList.add('open');
 }
 
-/* 把地圖 tile 畫到拍照 canvas */
-async function drawMapOnCanvas(ctx,VW,VH,mx,my,mW,mH,z){
-  const TS=256,OW=mW*2,OH=mH*2;
-  const oc=document.createElement('canvas');oc.width=OW;oc.height=OH;
-  const octx=oc.getContext('2d');
-  const{x,y}=ll2t(gps.lat,gps.lon,z);
-  const TL=t2ll(x,y,z),TR=t2ll(x+1,y,z),BL=t2ll(x,y+1,z);
-  const fx=(gps.lon-TL.lon)/(TR.lon-TL.lon),fy=(TL.lat-gps.lat)/(TL.lat-BL.lat);
-  const ox=OW/2-Math.round(fx*TS),oy=OH/2-Math.round(fy*TS);
-  const tr=Math.ceil(Math.max(OW,OH)/TS)+1;
-  const sv=['a','b','c'];
-  const proms=[];
-  for(let dy=-tr;dy<=tr;dy++){
-    for(let dx=-tr;dx<=tr;dx++){
-      const tx=x+dx,ty2=y+dy;if(ty2<0)continue;
-      const ix=ox+dx*TS,iy=oy+dy*TS;
-      if(ix+TS<0||ix>OW||iy+TS<0||iy>OH)continue;
-      proms.push(new Promise(res=>{
-        const img=new Image();img.crossOrigin='anonymous';
-        img.onload=()=>{octx.drawImage(img,ix,iy,TS,TS);res();};
-        img.onerror=res;
-        img.src=`https://${sv[(Math.abs(tx)+Math.abs(ty2))%3]}.tile.openstreetmap.org/${z}/${tx}/${ty2}.png`;
-      }));
-    }
+/* ── HISTORY ── */
+function openHistory() {
+  const arr = loadHistory();
+  const el  = document.getElementById('histList');
+  const gc  = { S:'#00c896', A:'#f9a825', B:'#ff6b35', C:'#f44336' };
+  const gb  = { S:'#e6fff8', A:'#fff8e1', B:'#fff0eb', C:'#fff0ef' };
+  if (!arr.length) {
+    el.innerHTML = '<div style="color:var(--muted);padding:16px;font-size:14px">尚無紀錄</div>';
+  } else {
+    el.innerHTML = arr.map((r, i) => {
+      const { grade } = getGrade(r.pct);
+      const m = Math.floor(r.time / 60), s = r.time % 60;
+      return `<div class="hitem">
+        <div>
+          <div class="hi-date">第 ${arr.length - i} 次・${formatDate(new Date(r.date))}</div>
+          <div class="hi-detail">✅${r.correct} ❌${r.wrong} ⏭${r.skipped}・⏱${m}分${s.toString().padStart(2,'0')}秒</div>
+        </div>
+        <div>
+          <div class="hi-score" style="color:${gc[grade]}">${r.correct}</div>
+          <div class="hi-grade"><span class="gpill g${grade}" style="background:${gb[grade]};color:${gc[grade]}">${grade}級 ${r.pct}%</span></div>
+        </div>
+      </div>`;
+    }).join('');
   }
-  await Promise.race([Promise.all(proms),new Promise(r=>setTimeout(r,4000))]);
-  octx.strokeStyle='#e53935';octx.lineWidth=3;
-  octx.beginPath();octx.moveTo(OW/2-16,OH/2);octx.lineTo(OW/2+16,OH/2);octx.stroke();
-  octx.beginPath();octx.moveTo(OW/2,OH/2-16);octx.lineTo(OW/2,OH/2+16);octx.stroke();
-  octx.beginPath();octx.arc(OW/2,OH/2,7,0,Math.PI*2);
-  octx.fillStyle='rgba(229,57,53,0.9)';octx.fill();octx.strokeStyle='#fff';octx.lineWidth=2;octx.stroke();
-  octx.fillStyle='rgba(255,255,255,0.82)';octx.fillRect(0,OH-16,OW,16);
-  octx.fillStyle='#333';octx.font='11px sans-serif';octx.textAlign='center';
-  octx.fillText('© OpenStreetMap contributors',OW/2,OH-3);
-  ctx.drawImage(oc,0,0,OW,OH,mx,my,mW,mH);
-  ctx.strokeStyle='#44ffcc';ctx.lineWidth=Math.max(2,VW*0.003);ctx.strokeRect(mx,my,mW,mH);
-}
-function drawFallback(ctx,mx,my,mW,mH){
-  ctx.fillStyle='#0f2a1a';ctx.fillRect(mx,my,mW,mH);
-  ctx.strokeStyle='#44ffcc';ctx.lineWidth=2;ctx.strokeRect(mx,my,mW,mH);
-  const cx=mx+mW/2,cy=my+mH/2;
-  ctx.strokeStyle='rgba(68,255,204,.3)';ctx.lineWidth=.8;
-  [10,20,30].forEach(r=>{ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke()});
-  ctx.strokeStyle='#44ffcc';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(cx-12,cy);ctx.lineTo(cx+12,cy);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx,cy-12);ctx.lineTo(cx,cy+12);ctx.stroke();
-  ctx.fillStyle='#44ffcc';ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='rgba(68,255,204,.7)';ctx.font='10px sans-serif';ctx.textAlign='center';
-  ctx.fillText('按📍抓地圖',cx,my+mH-6);ctx.textAlign='left';
+  document.getElementById('histOverlay').classList.add('open');
 }
 
-/* ── 分享 ── */
-async function sharePhoto(){
-  const p=photos[curIdx],fname=`photo_${p.dStr}_${p.tStr}.jpg`;
-  try{
-    const blob=await(await fetch(p.url)).blob();
-    const file=new File([blob],fname,{type:'image/jpeg'});
-    if(navigator.canShare?.({files:[file]})){await navigator.share({files:[file],title:'浮水印照片'});return;}
-  }catch(e){if(e.name==='AbortError')return;}
-  const a=document.createElement('a');a.href=photos[curIdx].url;a.download=fname;a.click();
+function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+
+function clearHistory() {
+  if (!confirm('確定清除全部歷史紀錄嗎？')) return;
+  localStorage.removeItem(HIST_KEY);
+  closeOverlay('histOverlay');
+  loadStartHistory();
 }
 
-/* ── 相簿 ── */
-function renderGallery(){
-  const g=$('gallery');g.innerHTML='';
-  photos.forEach((p,i)=>{
-    const w=document.createElement('div');w.className='tw';
-    const im=document.createElement('img');im.src=p.url;im.onclick=()=>openPrev(i);
-    const dl=document.createElement('button');dl.className='td';dl.textContent='✕';
-    dl.onclick=e=>{e.stopPropagation();delPhoto(i)};
-    w.appendChild(im);w.appendChild(dl);g.appendChild(w);
-  });
+/* ── STORAGE ── */
+function saveHistory(r) {
+  const a = loadHistory();
+  a.unshift(r);
+  if (a.length > 60) a.length = 60;
+  localStorage.setItem(HIST_KEY, JSON.stringify(a));
 }
-function openPrev(i){
-  curIdx=i;
-  $('pimg').src=photos[i].url;
-  $('dl-btn').href=photos[i].url;
-  $('dl-btn').download=`photo_${photos[i].dStr}_${photos[i].tStr}.jpg`;
-  setText('save-hint',navigator.share?'點「分享/存相簿」→ 選「儲存影像」存入 iOS 相簿':'長按照片儲存，或點⬇下載');
-  $('pmodal').classList.add('show');
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch { return []; }
 }
-function closePrev(){$('pmodal').classList.remove('show');}
-function delPhoto(i){photos.splice(i,1);renderGallery();setStatus(photos.length?`已拍攝 ${photos.length} 張`:'準備拍攝');}
-
-/* ── 時鐘 ── */
-function tick(){
-  const n=new Date();
-  setText('wm-time',`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`);
-  setText('wm-date',`${n.getFullYear()}.${pad(n.getMonth()+1)}.${pad(n.getDate())} 週${DAYS[n.getDay()]}`);
+function loadStartHistory() {
+  const arr = loadHistory().slice(0, 5);
+  const el  = document.getElementById('startHistList');
+  if (!arr.length) { el.innerHTML = '<div class="no-rec">尚無紀錄，快來挑戰！</div>'; return; }
+  el.innerHTML = '<div class="hist-mini-rows">' + arr.map(r => {
+    const { grade } = getGrade(r.pct);
+    return `<div class="hmr">
+      <span class="hmr-date">${formatDate(new Date(r.date))}</span>
+      <span class="gpill g${grade}">${r.correct}題・${r.pct}%</span>
+    </div>`;
+  }).join('') + '</div>';
 }
 
-initCamera();initGPS();initCompass();
-setInterval(tick,1000);tick();
+/* ── UTILS ── */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function formatDate(d) {
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function launchConfetti() {
+  const cols = ['#ff6b35','#ffca28','#00c896','#2196f3','#9c27b0','#f44336'];
+  for (let i = 0; i < 90; i++) {
+    const el = document.createElement('div');
+    el.className = 'cf';
+    const sz = 7 + Math.random() * 10;
+    Object.assign(el.style, {
+      width: sz+'px', height: sz+'px',
+      left: Math.random() * 100 + 'vw',
+      background: cols[Math.floor(Math.random() * cols.length)],
+      animationDuration: (1.4 + Math.random() * 1.8) + 's',
+      animationDelay: Math.random() * .8 + 's',
+      transform: `rotate(${Math.random()*360}deg)`
+    });
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+/* ── INIT ── */
+loadStartHistory();
 </script>
 </body>
 </html>
